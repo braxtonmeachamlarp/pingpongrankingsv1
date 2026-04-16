@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Line Ping Pong Rankings</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #13161e;
+    --surface2: #1a1e29;
+    --border: #1f2435;
+    --text: #e8eaf0;
+    --muted: #6b7280;
+    --gold: #f5a623;
+    --silver: #9ca3af;
+    --bronze: #cd7f32;
+    --green: #22c55e;
+    --red: #ef4444;
+    --blue: #38bdf8;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(56,189,248,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(56,189,248,0.025) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none; z-index: 0;
+  }
+
+  /* NAV */
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(13,15,20,0.9);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem; height: 60px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .nav-logo { display: flex; align-items: center; gap: 10px; cursor: pointer; text-decoration: none; }
+  .logo-icon { width: 32px; height: 32px; background: var(--blue); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 17px; }
+  .logo-text { font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem; letter-spacing: 1px; color: var(--text); }
+  .logo-text span { color: var(--blue); }
+  .nav-links { display: flex; align-items: center; gap: 0.25rem; list-style: none; }
+  .nav-links a { color: var(--muted); text-decoration: none; font-size: 0.85rem; font-weight: 500; padding: 6px 14px; border-radius: 8px; transition: color 0.2s, background 0.2s; cursor: pointer; }
+  .nav-links a:hover { color: var(--text); background: var(--surface2); }
+  .nav-links a.active { color: var(--text); background: var(--surface2); }
+
+  .page { display: none; position: relative; z-index: 1; }
+  .page.active { display: block; }
+
+  main { max-width: 760px; margin: 0 auto; padding: 3rem 1.5rem 5rem; }
+  .section-header { display: flex; align-items: center; gap: 12px; margin-bottom: 1.8rem; }
+  .section-title { font-family: 'Bebas Neue', sans-serif; font-size: 2rem; letter-spacing: 2px; color: var(--text); }
+
+  /* RANK CARDS */
+  .rankings-list { display: flex; flex-direction: column; gap: 10px; }
+
+  .rank-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    display: flex; align-items: center; padding: 14px 16px; gap: 14px;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s, transform 0.15s;
+    animation: slideIn 0.4s ease both; position: relative; overflow: hidden;
+  }
+  .rank-card:hover { border-color: rgba(56,189,248,0.3); background: var(--surface2); transform: translateX(3px); }
+  .rank-card.top1::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--gold); border-radius:3px 0 0 3px; }
+  .rank-card.top2::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--silver); border-radius:3px 0 0 3px; }
+  .rank-card.top3::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--bronze); border-radius:3px 0 0 3px; }
+
+  @keyframes slideIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+
+  .rank-num { width:38px; height:38px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-family:'Bebas Neue',sans-serif; font-size:1.15rem; flex-shrink:0; letter-spacing:1px; }
+  .rank-num.gold   { background:var(--gold); color:#000; }
+  .rank-num.silver { background:#374151; color:var(--silver); }
+  .rank-num.bronze { background:#2d2018; color:var(--bronze); }
+  .rank-num.normal { background:var(--surface2); color:var(--muted); }
+
+  .avatar { width:44px; height:44px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-family:'Bebas Neue',sans-serif; font-size:1.3rem; }
+
+  .info { flex:1; min-width:0; }
+  .name-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .name { font-weight:600; font-size:1rem; color:var(--text); }
+
+  .badge { font-size:0.68rem; font-weight:700; padding:2px 8px; border-radius:99px; letter-spacing:0.5px; text-transform:uppercase; }
+  .badge.hot    { background:rgba(245,166,35,0.18); color:var(--gold); }
+  .badge.rising { background:rgba(34,197,94,0.15); color:var(--green); }
+
+  .title-sub { font-size:0.8rem; color:var(--muted); margin-top:1px; }
+  .rank-right { display:flex; align-items:center; gap:10px; flex-shrink:0; }
+
+  .elo-score { font-family:'Bebas Neue',sans-serif; font-size:1.2rem; letter-spacing:1px; color:var(--text); }
+  .elo-label { font-size:0.65rem; color:var(--muted); text-align:right; margin-top:-2px; letter-spacing:0.5px; text-transform:uppercase; }
+
+  .delta { display:flex; align-items:center; gap:4px; padding:4px 10px; border-radius:8px; font-size:0.8rem; font-weight:600; }
+  .delta.up   { background:rgba(34,197,94,0.12); color:var(--green); }
+  .delta.down { background:rgba(239,68,68,0.12); color:var(--red); }
+  .delta.same { background:var(--surface2); color:var(--muted); }
+  .chevron { color:var(--muted); font-size:1rem; opacity:0.5; }
+
+  .tier-bar { display:flex; align-items:center; gap:6px; margin-top:3px; }
+  .tier-dot { width:7px; height:7px; border-radius:50%; }
+  .tier-label { font-size:0.7rem; font-weight:600; letter-spacing:0.5px; }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0; z-index: 500;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(6px);
+    align-items: center; justify-content: center;
+    padding: 1rem;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    width: 100%; max-width: 480px;
+    padding: 2rem;
+    position: relative;
+    animation: modalIn 0.2s ease;
+  }
+  @keyframes modalIn { from { opacity:0; transform:translateY(16px) scale(0.97); } to { opacity:1; transform:none; } }
+
+  .modal-close {
+    position: absolute; top: 1rem; right: 1rem;
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--muted); width: 30px; height: 30px;
+    border-radius: 50%; cursor: pointer; font-size: 1rem;
+    display: flex; align-items: center; justify-content: center;
+    transition: color 0.2s;
+  }
+  .modal-close:hover { color: var(--text); }
+
+  .modal-header { display: flex; align-items: center; gap: 16px; margin-bottom: 1.5rem; }
+  .modal-avatar { width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Bebas Neue', sans-serif; font-size: 1.8rem; flex-shrink: 0; }
+  .modal-name { font-family: 'Bebas Neue', sans-serif; font-size: 1.8rem; letter-spacing: 2px; line-height: 1; }
+  .modal-title { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
+
+  .modal-tier-bar { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+
+  .stats-grid {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px; margin-bottom: 1.2rem;
+  }
+  .stat-box {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 12px; padding: 0.9rem 0.8rem; text-align: center;
+  }
+  .stat-value { font-family: 'Bebas Neue', sans-serif; font-size: 1.5rem; letter-spacing: 1px; color: var(--text); }
+  .stat-label { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+
+  .stats-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1.2rem; }
+
+  .modal-divider { height: 1px; background: var(--border); margin: 1.2rem 0; }
+
+  .recent-matches-title { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 0.7rem; }
+
+  .match-row { display: flex; align-items: center; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
+  .match-row:last-child { border-bottom: none; }
+  .match-vs { color: var(--muted); }
+  .match-score { font-weight: 600; }
+  .match-result { font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 6px; }
+  .match-result.win  { background: rgba(34,197,94,0.15); color: var(--green); }
+  .match-result.loss { background: rgba(239,68,68,0.12); color: var(--red); }
+
+  /* RULES */
+  .rules-hero { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:2rem 2.2rem; margin-bottom:2rem; }
+  .rules-hero h2 { font-family:'Bebas Neue',sans-serif; font-size:1.5rem; letter-spacing:2px; color:var(--text); margin-bottom:0.5rem; }
+  .rules-hero p { color:var(--muted); font-size:0.9rem; line-height:1.6; }
+
+  .rules-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:2rem; }
+  @media(max-width:580px){ .rules-grid { grid-template-columns:1fr; } }
+
+  .rules-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:1.2rem 1.4rem; transition:border-color 0.2s; }
+  .rules-card:hover { border-color:rgba(56,189,248,0.25); }
+  .rules-card-icon { font-size:1.3rem; margin-bottom:0.6rem; }
+  .rules-card h3 { font-weight:600; font-size:0.9rem; color:var(--text); margin-bottom:0.4rem; }
+  .rules-card p  { font-size:0.8rem; color:var(--muted); line-height:1.55; }
+
+  .factors-title { font-family:'Bebas Neue',sans-serif; font-size:1.4rem; letter-spacing:2px; color:var(--text); margin-bottom:1rem; display:flex; align-items:center; gap:10px; }
+
+  .factor-row { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1rem 1.4rem; margin-bottom:8px; display:grid; grid-template-columns:1fr auto; gap:1rem; align-items:start; transition:border-color 0.2s; }
+  .factor-row:hover { border-color:rgba(56,189,248,0.25); }
+  .factor-name { font-weight:600; font-size:0.9rem; color:var(--text); margin-bottom:0.3rem; }
+  .factor-desc { font-size:0.78rem; color:var(--muted); line-height:1.55; }
+  .factor-weight { font-family:'Bebas Neue',sans-serif; font-size:1.3rem; color:var(--blue); letter-spacing:1px; white-space:nowrap; }
+
+  .tiers-section { margin-bottom: 2rem; }
+  .tiers-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  @media(max-width:500px){ .tiers-grid { grid-template-columns:1fr 1fr; } }
+  .tier-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1rem 1.2rem; text-align:center; }
+  .tier-card .t-name { font-family:'Bebas Neue',sans-serif; font-size:1.1rem; letter-spacing:1px; margin-bottom:2px; }
+  .tier-card .t-range { font-size:0.75rem; color:var(--muted); }
+
+  /* NEWS BANNER */
+  .news-banner {
+    background: linear-gradient(135deg, #1a0f0f 0%, #1e1520 100%);
+    border: 1px solid rgba(239,68,68,0.3);
+    border-radius: 16px;
+    padding: 1.6rem 2rem;
+    margin-bottom: 1.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .news-banner::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(90deg, rgba(239,68,68,0.05) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .news-tag {
+    font-size: 0.7rem; font-weight: 800; letter-spacing: 2px;
+    color: var(--red); text-transform: uppercase; margin-bottom: 0.6rem;
+  }
+  .news-headline {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.45rem; letter-spacing: 1.5px; line-height: 1.2;
+    color: var(--text); margin-bottom: 1rem;
+  }
+  .news-body {
+    font-size: 0.85rem; color: #b0b8c8; line-height: 1.7;
+  }
+  .news-body strong { color: var(--text); }
+
+  /* MOVERS */
+  .movers-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 2rem; }
+  @media(max-width:500px){ .movers-row { grid-template-columns: 1fr; } }
+  .movers-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 1.1rem 1.3rem;
+  }
+  .movers-card.risers { border-color: rgba(34,197,94,0.2); }
+  .movers-card.drops  { border-color: rgba(239,68,68,0.2); }
+  .movers-title { font-size: 0.8rem; font-weight: 700; letter-spacing: 0.5px; color: var(--muted); text-transform: uppercase; margin-bottom: 0.8rem; }
+  .mover-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--border); }
+  .mover-row:last-child { border-bottom: none; }
+  .mover-rank { font-family: 'Bebas Neue', sans-serif; font-size: 0.95rem; color: var(--muted); width: 28px; }
+  .mover-name { flex: 1; font-weight: 600; font-size: 0.9rem; }
+  .mover-delta { font-size: 0.78rem; font-weight: 700; padding: 2px 8px; border-radius: 6px; }
+  .mover-delta.up   { background: rgba(34,197,94,0.12); color: var(--green); }
+  .mover-delta.down { background: rgba(239,68,68,0.12); color: var(--red); }
+
+  footer { position:relative; z-index:1; text-align:center; padding:1.5rem; color:var(--muted); font-size:0.75rem; border-top:1px solid var(--border); }
+  footer span { color:var(--blue); }
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-logo" href="#rankings" onclick="navigate('rankings')">
+    <div class="logo-icon">🏓</div>
+    <div class="logo-text">THE <span>LINE</span> PING PONG RANKINGS</div>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#rankings" id="nav-rankings" onclick="navigate('rankings')">Rankings</a></li>
+    <li><a href="#rules"    id="nav-rules"    onclick="navigate('rules')">Rules</a></li>
+  </ul>
+</nav>
+
+<!-- RANKINGS PAGE -->
+<div class="page" id="page-rankings">
+  <main>
+
+    <!-- BREAKING NEWS -->
+    <div class="news-banner">
+      <div class="news-tag">🏓 BREAKING NEWS 🏓</div>
+      <div class="news-headline">FINN GOES NUCLEAR IN COMMUNITY TIME TWOS MATCH — AIDEN'S ILLEGAL SERVES EXPOSED!!!</div>
+      <div class="news-body">
+        During today's community time session out at the school's ping pong tables, Finn and Aiden squared off in a heated 2v2 twos match — and it got personal fast. Finn, in what analysts are already calling a <strong>"career-defining display,"</strong> completely dismantled Aiden's game with a relentless spin serve that Aiden had absolutely no answer for. Aiden was playing his usual game — bending a few of the <strong>more obscure serve rules</strong> that, honestly, most people don't bother enforcing anyway — but even that wasn't enough to stop Finn today. It should be noted that Landon is the <em>only</em> person who has ever cared about those rules, and he cares a lot. Reached for comment, Landon said <strong>"the rules are the rules."</strong> Everyone else shrugged. The rankings have been updated. Community time will never be the same.
+      </div>
+    </div>
+
+    <!-- RISERS & DROPS -->
+    <div class="movers-row">
+      <div class="movers-card risers">
+        <div class="movers-title"><span style="color:var(--green)">↗</span> Biggest Risers</div>
+        <div class="mover-row">
+          <span class="mover-rank">#2</span>
+          <span class="mover-name">Finn</span>
+          <span class="mover-delta up">↗ +1</span>
+        </div>
+        <div class="mover-row">
+          <span class="mover-rank">#5</span>
+          <span class="mover-name">Jayden</span>
+          <span class="mover-delta up">↗ +1</span>
+        </div>
+      </div>
+      <div class="movers-card drops">
+        <div class="movers-title"><span style="color:var(--red)">↘</span> Biggest Drops</div>
+        <div class="mover-row">
+          <span class="mover-rank">#3</span>
+          <span class="mover-name">Braxton</span>
+          <span class="mover-delta down">↘ -1</span>
+        </div>
+        <div class="mover-row">
+          <span class="mover-rank">#6</span>
+          <span class="mover-name">Max</span>
+          <span class="mover-delta down">↘ -1</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-header">
+      <span style="font-size:1.6rem;">🏓</span>
+      <h1 class="section-title">Official ELO Rankings</h1>
+    </div>
+    <div class="rankings-list" id="rankingsList"></div>
+  </main>
+</div>
+
+<!-- RULES PAGE -->
+<div class="page" id="page-rules">
+  <main>
+    <div class="section-header">
+      <span style="font-size:1.6rem;">📋</span>
+      <h1 class="section-title">How It Works</h1>
+    </div>
+    <div class="rules-hero">
+      <h2>The ELO Rating System</h2>
+      <p>The Line uses the ELO rating system — the same model used in chess and competitive esports — to rank players based on match outcomes. Every win and loss moves your rating. Beat a higher-ranked player and you gain more. Lose to a lower-ranked player and you drop more. Rankings reflect true skill, not just wins.</p>
+    </div>
+    <div class="rules-grid">
+      <div class="rules-card">
+        <div class="rules-card-icon">📈</div>
+        <h3>ELO Gain / Loss Formula</h3>
+        <p>Each player starts at 1200. After a match, points transfer based on expected outcome. Upset wins reward more ELO; expected wins reward less. The K-factor is set to 32, meaning max swing per match is ±32 points.</p>
+      </div>
+      <div class="rules-card">
+        <div class="rules-card-icon">🎯</div>
+        <h3>Match Format</h3>
+        <p>All ranked matches are best-of-3 games to 11 points. Win by 2 is enforced. A match only counts toward ELO if both players confirm the result. Unconfirmed matches are voided.</p>
+      </div>
+      <div class="rules-card">
+        <div class="rules-card-icon">🔄</div>
+        <h3>Live Updates</h3>
+        <p>Rankings update in real time after each confirmed match. Movement arrows show rank change from the previous session. The 🔥 Hot badge is awarded for gaining 15+ ELO in a single day.</p>
+      </div>
+      <div class="rules-card">
+        <div class="rules-card-icon">⚠️</div>
+        <h3>Inactivity Penalty</h3>
+        <p>Players who go 14+ days without a ranked match lose 5 ELO per day until their next match. This keeps the leaderboard active and reflects current form, not past glory.</p>
+      </div>
+    </div>
+    <div class="tiers-section">
+      <div class="factors-title"><span>🏅</span> ELO Tiers</div>
+      <div class="tiers-grid" id="tiersGrid"></div>
+    </div>
+    <div class="factors-title"><span>⚖️</span> Ranking Factors</div>
+    <div id="factorsList"></div>
+  </main>
+</div>
+
+<!-- PLAYER MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal" id="modalContent">
+    <button class="modal-close" onclick="closeModalBtn()">✕</button>
+    <div class="modal-header">
+      <div class="modal-avatar" id="mAvatar"></div>
+      <div>
+        <div class="modal-name" id="mName"></div>
+        <div class="modal-tier-bar" id="mTierBar"></div>
+        <div class="modal-title" id="mTitle"></div>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="stat-value" id="mElo"></div>
+        <div class="stat-label">ELO Rating</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value" id="mRank"></div>
+        <div class="stat-label">Rank</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value" id="mWinRate"></div>
+        <div class="stat-label">Win Rate</div>
+      </div>
+    </div>
+
+    <div class="stats-grid-2">
+      <div class="stat-box">
+        <div class="stat-value" id="mRecord"></div>
+        <div class="stat-label">W – L Record</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value" id="mStreak"></div>
+        <div class="stat-label">Current Streak</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value" id="mPeak"></div>
+        <div class="stat-label">Peak ELO</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value" id="mMatches"></div>
+        <div class="stat-label">Total Matches</div>
+      </div>
+    </div>
+
+    <div class="modal-divider"></div>
+    <div class="recent-matches-title">Recent Matches</div>
+    <div id="mMatches-list"></div>
+  </div>
+</div>
+
+<footer>
+  THE LINE PING PONG RANKINGS &nbsp;·&nbsp; <span>Official &amp; Binding</span> &nbsp;·&nbsp; Updated April 2026
+</footer>
+
+<script>
+  /* ── ROUTING ── */
+  function navigate(page) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
+    document.getElementById('page-' + page).classList.add('active');
+    document.getElementById('nav-' + page).classList.add('active');
+    window.scrollTo(0, 0);
+  }
+  window.addEventListener('hashchange', () => {
+    const h = window.location.hash.replace('#','');
+    navigate(h === 'rules' ? 'rules' : 'rankings');
+  });
+
+  /* ── PLAYER DATA ── */
+  // Scores use actual game points: games to 11 (win by 2) or games to 5 (win by 2)
+  // Format: "W score – L score" per game, e.g. "11–8, 11–9" or "5–3, 8–11, 11–9"
+  const players = [
+    {
+      name: "Aiden",   elo: 1614, rankDelta:  0, title: "Table Tyrant",     badge: "hot",
+      wins: 31, losses: 9,  streak: "W5", peak: 1631,
+      matches: [
+        { opp: "Finn",    score: "11–8, 9–11, 11–7",   result: "win"  },
+        { opp: "Braxton", score: "11–4, 11–6",          result: "win"  },
+        { opp: "Landon",  score: "11–9, 8–11, 11–13, 11–6, 11–8", result: "win" },
+        { opp: "Finn",    score: "9–11, 11–8, 8–11",   result: "loss" },
+        { opp: "Max",     score: "11–3, 11–5",          result: "win"  },
+      ]
+    },
+    {
+      name: "Finn",    elo: 1522, rankDelta: +1, title: "The Spin Doctor",  badge: "rising",
+      wins: 26, losses: 13, streak: "W2", peak: 1538,
+      matches: [
+        { opp: "Aiden",   score: "9–11, 11–8, 11–9",   result: "win"  },
+        { opp: "Braxton", score: "11–7, 5–3",           result: "win"  },
+        { opp: "Aiden",   score: "11–9, 8–11, 8–11",   result: "loss" },
+        { opp: "Landon",  score: "11–5, 11–3",          result: "win"  },
+        { opp: "Jayden",  score: "9–11, 11–8, 9–11",   result: "loss" },
+      ]
+    },
+    {
+      name: "Braxton", elo: 1431, rankDelta: -1, title: "The Wall",         badge: null,
+      wins: 22, losses: 16, streak: "L1", peak: 1455,
+      matches: [
+        { opp: "Landon",  score: "11–9, 9–11, 11–8",   result: "win"  },
+        { opp: "Aiden",   score: "4–11, 6–11",          result: "loss" },
+        { opp: "Finn",    score: "7–11, 3–5",           result: "loss" },
+        { opp: "Max",     score: "11–6, 11–8",          result: "win"  },
+        { opp: "Bennett", score: "11–3, 11–5",          result: "win"  },
+      ]
+    },
+    {
+      name: "Landon",  elo: 1318, rankDelta:  0, title: "The Rule Enforcer",        badge: null,
+      wins: 18, losses: 19, streak: "L2", peak: 1374,
+      matches: [
+        { opp: "Jayden",  score: "11–7, 11–9",          result: "win"  },
+        { opp: "Braxton", score: "9–11, 11–9, 8–11",    result: "loss" },
+        { opp: "Finn",    score: "5–11, 3–11",           result: "loss" },
+        { opp: "Bennett", score: "11–8, 8–11, 11–9",    result: "win"  },
+        { opp: "Aiden",   score: "9–11, 11–9, 8–11, 6–11, 8–11", result: "loss" },
+      ]
+    },
+    {
+      name: "Jayden",  elo: 1204, rankDelta: +1, title: "On the Grind",     badge: null,
+      wins: 14, losses: 21, streak: "W2", peak: 1197,
+      matches: [
+        { opp: "Finn",    score: "11–9, 8–11, 11–9",    result: "win"  },
+        { opp: "Landon",  score: "7–11, 9–11",           result: "loss" },
+        { opp: "Bennett", score: "11–6, 5–3",            result: "win"  },
+        { opp: "Max",     score: "11–9, 9–11, 11–8",    result: "win"  },
+        { opp: "Braxton", score: "4–11, 5–11",           result: "loss" },
+      ]
+    },
+    {
+      name: "Max",     elo: 1103, rankDelta: -1, title: "Smash & Dash",     badge: null,
+      wins: 11, losses: 24, streak: "L1", peak: 1290,
+      matches: [
+        { opp: "Jayden",  score: "9–11, 11–9, 8–11",    result: "loss" },
+        { opp: "Landon",  score: "6–11, 8–11",           result: "loss" },
+        { opp: "Braxton", score: "6–11, 8–11",           result: "loss" },
+        { opp: "Bennett", score: "11–5, 11–7",           result: "win"  },
+        { opp: "Aiden",   score: "3–11, 5–11",           result: "loss" },
+      ]
+    },
+    {
+      name: "Bennett", elo: 1022, rankDelta:  0, title: "The Comeback Kid", badge: null,
+      wins: 9,  losses: 27, streak: "L3", peak: 1155,
+      matches: [
+        { opp: "Jayden",  score: "6–11, 3–5",            result: "loss" },
+        { opp: "Max",     score: "5–11, 7–11",            result: "loss" },
+        { opp: "Landon",  score: "8–11, 11–9, 9–11",     result: "loss" },
+        { opp: "Braxton", score: "3–11, 5–11",            result: "loss" },
+        { opp: "Max",     score: "11–9, 9–11, 11–8",     result: "win"  },
+      ]
+    },
+  ];
+
+  const avatarColors = ["#0f2e4a","#0f3a22","#3a1e0f","#1e2d0f","#2d0f3a","#0f1e3a","#3a2d0f"];
+
+  function getTier(elo) {
+    if (elo >= 1550) return { label: 'Diamond',  color: '#38bdf8' };
+    if (elo >= 1350) return { label: 'Platinum', color: '#a78bfa' };
+    if (elo >= 1150) return { label: 'Gold',     color: '#f5a623' };
+    if (elo >= 950)  return { label: 'Silver',   color: '#9ca3af' };
+    return                  { label: 'Bronze',   color: '#cd7f32' };
+  }
+
+  function getRankNumClass(i) { return i===0?'gold':i===1?'silver':i===2?'bronze':'normal'; }
+  function getCardClass(i)    { return i===0?'rank-card top1':i===1?'rank-card top2':i===2?'rank-card top3':'rank-card'; }
+
+  function getBadgeHTML(badge) {
+    if (badge==='hot')    return `<span class="badge hot">🔥 Hot</span>`;
+    if (badge==='rising') return `<span class="badge rising">↑ Rising</span>`;
+    return '';
+  }
+
+  function getDeltaHTML(d) {
+    if (d > 0) return `<div class="delta up">↗ +${d}</div>`;
+    if (d < 0) return `<div class="delta down">↘ ${d}</div>`;
+    return `<div class="delta same">→ –</div>`;
+  }
+
+  function getAvatarColor(i) { return i===0?'var(--gold)':i===1?'var(--silver)':i===2?'var(--bronze)':'#9ca3af'; }
+
+  /* Build ranking cards */
+  let html = '';
+  players.forEach((p, i) => {
+    const tier = getTier(p.elo);
+    const bgColor = avatarColors[i % avatarColors.length];
+    const delay = i * 60;
+    html += `
+      <div class="${getCardClass(i)}" style="animation-delay:${delay}ms" onclick="openModal(${i})">
+        <div class="rank-num ${getRankNumClass(i)}">${i+1}</div>
+        <div class="avatar" style="background:${bgColor};color:${getAvatarColor(i)}">${p.name[0]}</div>
+        <div class="info">
+          <div class="name-row">
+            <span class="name">${p.name}</span>
+            ${getBadgeHTML(p.badge)}
+          </div>
+          <div class="tier-bar">
+            <div class="tier-dot" style="background:${tier.color}"></div>
+            <span class="tier-label" style="color:${tier.color}">${tier.label}</span>
+            <span style="color:var(--muted);font-size:0.7rem;margin-left:4px">· ${p.title}</span>
+          </div>
+        </div>
+        <div class="rank-right">
+          <div style="text-align:right">
+            <div class="elo-score">${p.elo}</div>
+            <div class="elo-label">ELO</div>
+          </div>
+          ${getDeltaHTML(p.rankDelta)}
+          <span class="chevron">›</span>
+        </div>
+      </div>
+    `;
+  });
+  document.getElementById('rankingsList').innerHTML = html;
+
+  /* ── MODAL ── */
+  function openModal(i) {
+    const p = players[i];
+    const tier = getTier(p.elo);
+    const bgColor = avatarColors[i % avatarColors.length];
+    const avatarColor = getAvatarColor(i);
+    const totalGames = p.wins + p.losses;
+    const winRate = Math.round((p.wins / totalGames) * 100) + '%';
+
+    document.getElementById('mAvatar').style.background = bgColor;
+    document.getElementById('mAvatar').style.color = avatarColor;
+    document.getElementById('mAvatar').textContent = p.name[0];
+    document.getElementById('mName').textContent = p.name;
+    document.getElementById('mTierBar').innerHTML = `
+      <div class="tier-dot" style="background:${tier.color}"></div>
+      <span class="tier-label" style="color:${tier.color};font-size:0.8rem">${tier.label}</span>
+    `;
+    document.getElementById('mTitle').textContent = p.title;
+    document.getElementById('mElo').textContent = p.elo;
+    document.getElementById('mRank').textContent = '#' + (i + 1);
+    document.getElementById('mWinRate').textContent = winRate;
+    document.getElementById('mRecord').textContent = p.wins + ' – ' + p.losses;
+    document.getElementById('mStreak').innerHTML = p.streak.startsWith('W')
+      ? `<span style="color:var(--green)">${p.streak}</span>`
+      : `<span style="color:var(--red)">${p.streak}</span>`;
+    document.getElementById('mPeak').textContent = p.peak;
+    document.getElementById('mMatches').textContent = totalGames;
+
+    document.getElementById('mMatches-list').innerHTML = p.matches.map(m => `
+      <div class="match-row">
+        <span>vs <span class="match-vs">${m.opp}</span></span>
+        <span class="match-score">${m.score}</span>
+        <span class="match-result ${m.result}">${m.result.toUpperCase()}</span>
+      </div>
+    `).join('');
+
+    document.getElementById('modalOverlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeModal(e) {
+    if (e.target === document.getElementById('modalOverlay')) closeModalBtn();
+  }
+  function closeModalBtn() {
+    document.getElementById('modalOverlay').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModalBtn(); });
+
+  /* ── TIERS ── */
+  const tiers = [
+    { name:'Diamond',  range:'1550+',     color:'#38bdf8' },
+    { name:'Platinum', range:'1350–1549', color:'#a78bfa' },
+    { name:'Gold',     range:'1150–1349', color:'#f5a623' },
+    { name:'Silver',   range:'950–1149',  color:'#9ca3af' },
+    { name:'Bronze',   range:'750–949',   color:'#cd7f32' },
+    { name:'Iron',     range:'Below 750', color:'#6b7280' },
+  ];
+  document.getElementById('tiersGrid').innerHTML = tiers.map(t => `
+    <div class="tier-card">
+      <div class="t-name" style="color:${t.color}">${t.name}</div>
+      <div class="t-range">${t.range}</div>
+    </div>
+  `).join('');
+
+  /* ── FACTORS ── */
+  const factors = [
+    { name:"Win/Loss Record",      weight:"Core",   desc:"Primary driver of ELO. Every match result shifts your rating. Wins raise it, losses lower it. Consistency over time is what separates tiers." },
+    { name:"Opponent Strength",    weight:"Core",   desc:"Beating a higher-rated opponent yields more ELO than beating a lower-rated one. The system rewards you for punching above your weight." },
+    { name:"Expected Outcome",     weight:"Core",   desc:"ELO calculates the probability of winning before every match. Upsets swing the scoreboard hard. Expected wins earn modest gains." },
+    { name:"Game Differential",    weight:"Bonus",  desc:"Winning 3–0 vs. winning 3–2 carries a small bonus modifier. Dominant victories signal form. Grinding out close wins is still a win — just fewer points." },
+    { name:"Match Frequency",      weight:"Active", desc:"Inactive players decay over time. To hold your rank, you need to play. Ranking reflects current form, not historical peak." },
+    { name:"Head-to-Head History", weight:"Bonus",  desc:"Repeated matchups carry historical context. A player who consistently beats the same opponent loses less ELO from that pairing over time." },
+  ];
+  document.getElementById('factorsList').innerHTML = factors.map(f => `
+    <div class="factor-row">
+      <div>
+        <div class="factor-name">${f.name}</div>
+        <div class="factor-desc">${f.desc}</div>
+      </div>
+      <div class="factor-weight">${f.weight}</div>
+    </div>
+  `).join('');
+
+  /* ── INIT ── */
+  const initHash = window.location.hash.replace('#','');
+  navigate(initHash === 'rules' ? 'rules' : 'rankings');
+</script>
+
+</body>
+</html>
